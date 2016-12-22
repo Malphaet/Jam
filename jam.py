@@ -40,6 +40,7 @@ class GameCar(pygame.sprite.Sprite):
 class Car (object):
 	def __init__(self,lane,pos,max_speed):
 		self.theta,self.r=pos*15,lane*40+80
+		self.secu=2
 		self.x,self.y=0,0
 		self.speed=0
 		self.lane=lane
@@ -59,13 +60,13 @@ class Car (object):
 
 	def move(self):
 		dist=self.dist()
-		if dist<self.speed:
+		if dist<self.speed*self.secu+self.height*1.5:
 			self.speed-=self.acc
 			if self.speed<0:
 				self.speed=0
 		else:
 			if self.speed<self.max_speed:
-				self.speed+=self.acc+random.randint(1,20)-10
+				self.speed+=self.acc
 			else:
 				self.speed=self.max_speed
 		
@@ -78,7 +79,7 @@ class Car (object):
 				
 	def dist(self):
 		delt=self.prev_car.theta-self.theta
-		if delt<0:
+		if delt<-180:
 			delt+=360
 		return math.pi*self.r*delt/180
 	
@@ -95,9 +96,13 @@ class Car (object):
 		return "Car{} lane:{} ({:2d},{:2d}) - ({:2d}°,{:2d})".format(self.pos,self.lane,self.x,self.y,self.theta,self.r)
 	
 class BrokenCar(Car):
-	def __init__(self,lane,pos,max_speed):
+	def __init__(self,lane,pos,max_speed,jam=20):
 		Car.__init__(self,lane,pos,max_speed*2/3)
 		self.color=RED
+		self.stuck=0
+		self.time=0
+		self.immune=0
+		self.jam=jam
 		self.rotate()
 
 	def update(self):
@@ -105,7 +110,23 @@ class BrokenCar(Car):
 		self.slack()
 		self.rotate()
 	def slack(self):
-		pass
+		if self.stuck==0:
+			self.acc=5
+			if self.immune<0 and random.randint(0,100)<self.jam:
+				self.stuck=1
+				self.time=random.randint(1,6)*30/6
+			else:
+				self.immune-=1
+
+		else:
+			self.speed=0
+			self.acc=0
+			self.time-=1
+			if self.time<0:
+				self.stuck=0
+				self.immune=30*4
+
+
 class CarList (object):
 	def __init__(self):
 		pass
@@ -120,7 +141,7 @@ all_sprites_list = pygame.sprite.Group()
 
 for j in xrange(1,7):
 	carlist=[]
-	for i in xrange(10+j*3):
+	for i in xrange(11+j*3):
 		CT=Car
 		if i%10==0:
 			CT=BrokenCar
