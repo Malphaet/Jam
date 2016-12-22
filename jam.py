@@ -39,7 +39,7 @@ class GameCar(pygame.sprite.Sprite):
 
 class Car (object):
 	def __init__(self,lane,pos,max_speed):
-		self.theta,self.r=pos*10,lane*40+80
+		self.theta,self.r=pos*15,lane*40+80
 		self.x,self.y=0,0
 		self.speed=0
 		self.lane=lane
@@ -50,19 +50,22 @@ class Car (object):
 		self.rotate()
 		self.color=(random.randint(0,255),random.randint(0,255),random.randint(0,255))
 		self.width,self.height=random.randint(5,15),random.randint(10,20)
+
 	def setup(self,car_list):
 		if self.pos+1==len(car_list):
 			self.prev_car=car_list[0]
 		else:
 			self.prev_car=car_list[self.pos+1]
-	
+
 	def move(self):
 		dist=self.dist()
 		if dist<self.speed:
 			self.speed-=self.acc
+			if self.speed<0:
+				self.speed=0
 		else:
 			if self.speed<self.max_speed:
-				self.speed+=self.acc+random.randint(1,3)
+				self.speed+=self.acc+random.randint(1,20)-10
 			else:
 				self.speed=self.max_speed
 		
@@ -70,13 +73,13 @@ class Car (object):
 		Da=self.speed*5./self.r
 		self.theta+=Da
 		self.theta%=360
-		self.rotate()
+		
 		#print "Car {} is at {}px Delta {}".format(self.pos,dist,Da)
 				
 	def dist(self):
 		delt=self.prev_car.theta-self.theta
 		if delt<0:
-			delt+=180
+			delt+=360
 		return math.pi*self.r*delt/180
 	
 	def rotate(self):	
@@ -86,11 +89,23 @@ class Car (object):
 	def update(self):
 		#print "Cat {} updated".format(self.pos)
 		self.move()
+		self.rotate()
 
 	def __str__(self):
 		return "Car{} lane:{} ({:2d},{:2d}) - ({:2d}°,{:2d})".format(self.pos,self.lane,self.x,self.y,self.theta,self.r)
 	
+class BrokenCar(Car):
+	def __init__(self,lane,pos,max_speed):
+		Car.__init__(self,lane,pos,max_speed*2/3)
+		self.color=RED
+		self.rotate()
 
+	def update(self):
+		self.move()
+		self.slack()
+		self.rotate()
+	def slack(self):
+		pass
 class CarList (object):
 	def __init__(self):
 		pass
@@ -105,8 +120,11 @@ all_sprites_list = pygame.sprite.Group()
 
 for j in xrange(1,7):
 	carlist=[]
-	for i in xrange(10):
-		ncar=Car(j,i,30+20*j)
+	for i in xrange(10+j*3):
+		CT=Car
+		if i%10==0:
+			CT=BrokenCar
+		ncar=CT(j,i,30+20*j)
 		carlist+=[ncar]
 		c = GameCar(ncar)
 		c.rect.x = ncar.ax
