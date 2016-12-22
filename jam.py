@@ -9,6 +9,7 @@ from pygame.locals import *
 SCREENSIZE=(1024, 768)
 screen = pygame.display.set_mode(SCREENSIZE)
 clock = pygame.time.Clock()
+FRAMERATE=30
 CENTER=(SCREENSIZE[0]/2,SCREENSIZE[1]/2)
 BLACK=(0,0,0)
 WHITE = (255, 255, 255)
@@ -48,7 +49,7 @@ class Car (object):
 		self.pos=pos
 		self.prev_car=None
 		self.acc=random.randint(1,10)
-		self.rotate()
+		self.apply()
 		self.color=(random.randint(0,255),random.randint(0,255),random.randint(0,255))
 		self.width,self.height=random.randint(5,15),random.randint(10,20)
 
@@ -57,10 +58,9 @@ class Car (object):
 			self.prev_car=car_list[0]
 		else:
 			self.prev_car=car_list[self.pos+1]
-
-	def move(self):
+	def pickspeed(self):
 		dist=self.dist()
-		if dist<self.speed*self.secu+self.height*1.5:
+		if dist<max(self.speed*self.secu,self.height*2):
 			self.speed-=self.acc
 			if self.speed<0:
 				self.speed=0
@@ -69,28 +69,31 @@ class Car (object):
 				self.speed+=self.acc
 			else:
 				self.speed=self.max_speed
-		
+	def move(self):
 		#Moving
-		Da=self.speed*5./self.r
-		self.theta+=Da
+		Da=self.speed*1./FRAMERATE
+		nT=Da+self.theta
+		if nT>=self.prev_car.theta:
+			print "Crash {}".format(self.pos)
+		self.theta=nT
 		self.theta%=360
-		
-		#print "Car {} is at {}px Delta {}".format(self.pos,dist,Da)
-				
+			
 	def dist(self):
 		delt=self.prev_car.theta-self.theta
-		if delt<-180:
+		if delt<-50:
 			delt+=360
 		return math.pi*self.r*delt/180
 	
-	def rotate(self):	
+	def apply(self):
 		self.x=int(math.cos(self.theta/180.*math.pi)*self.r)
 		self.y=int(math.sin(self.theta/180.*math.pi)*self.r)
 		self.ax,self.ay=self.x+CENTER[0],self.y+CENTER[1]
+
 	def update(self):
 		#print "Cat {} updated".format(self.pos)
+		self.pickspeed()
 		self.move()
-		self.rotate()
+		self.apply()
 
 	def __str__(self):
 		return "Car{} lane:{} ({:2d},{:2d}) - ({:2d}°,{:2d})".format(self.pos,self.lane,self.x,self.y,self.theta,self.r)
@@ -103,18 +106,19 @@ class BrokenCar(Car):
 		self.time=0
 		self.immune=0
 		self.jam=jam
-		self.rotate()
+		self.apply()
 
 	def update(self):
+		self.pickspeed()
 		self.move()
 		self.slack()
-		self.rotate()
+		self.apply()
 	def slack(self):
 		if self.stuck==0:
 			self.acc=5
 			if self.immune<0 and random.randint(0,100)<self.jam:
 				self.stuck=1
-				self.time=random.randint(1,6)*30/6
+				self.time=random.randint(1,6)*FRAMERATE/6
 			else:
 				self.immune-=1
 
@@ -124,7 +128,7 @@ class BrokenCar(Car):
 			self.time-=1
 			if self.time<0:
 				self.stuck=0
-				self.immune=30*4
+				self.immune=FRAMERATE*4
 
 
 class CarList (object):
@@ -141,11 +145,11 @@ all_sprites_list = pygame.sprite.Group()
 
 for j in xrange(1,7):
 	carlist=[]
-	for i in xrange(11+j*3):
+	for i in xrange(10+j*3):
 		CT=Car
-		if i%10==0:
+		if i%3==0:
 			CT=BrokenCar
-		ncar=CT(j,i,30+20*j)
+		ncar=CT(j,i,10*j)
 		carlist+=[ncar]
 		c = GameCar(ncar)
 		c.rect.x = ncar.ax
@@ -172,6 +176,6 @@ while carryOn:
 
 		pygame.display.flip()
 
-		clock.tick(30)
+		clock.tick(FRAMERATE)
 
 pygame.quit()
