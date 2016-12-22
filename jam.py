@@ -35,6 +35,7 @@ class GameCar(pygame.sprite.Sprite):
 		self.x,self.y=self.car.ax,self.car.ay
 		self.rect = self.image.get_rect()
 		self.rect.center=self.x,self.y
+		self.car.update()
 
 class Car (object):
 	def __init__(self,lane,pos,max_speed):
@@ -57,14 +58,20 @@ class Car (object):
 	
 	def move(self):
 		dist=self.dist()
-		if dist<speed:
+		if dist<self.speed:
 			self.speed-=self.acc
-			self.rotate()
 		else:
 			if self.speed<self.max_speed:
 				self.speed+=self.acc+random.randint(1,3)
 			else:
 				self.speed=self.max_speed
+		
+		#Moving
+		Da=self.speed*5./self.r
+		self.theta+=Da
+		self.theta%=360
+		self.rotate()
+		#print "Car {} is at {}px Delta {}".format(self.pos,dist,Da)
 				
 	def dist(self):
 		delt=self.prev_car.theta-self.theta
@@ -76,7 +83,10 @@ class Car (object):
 		self.x=int(math.cos(self.theta/180.*math.pi)*self.r)
 		self.y=int(math.sin(self.theta/180.*math.pi)*self.r)
 		self.ax,self.ay=self.x+CENTER[0],self.y+CENTER[1]
-	
+	def update(self):
+		#print "Cat {} updated".format(self.pos)
+		self.move()
+
 	def __str__(self):
 		return "Car{} lane:{} ({:2d},{:2d}) - ({:2d}°,{:2d})".format(self.pos,self.lane,self.x,self.y,self.theta,self.r)
 	
@@ -87,21 +97,25 @@ class CarList (object):
 
 
 # Init
-carlist=[]
+lanes=[]
+
 screen = pygame.display.set_mode(SCREENSIZE)
 pygame.display.set_caption("Car Jam")
 all_sprites_list = pygame.sprite.Group()
 
-for i in xrange(10):
-	ncar=Car(1,i,50)
-	carlist+=[ncar]
-	c = GameCar(ncar)
-	c.rect.x = ncar.ax
-	c.rect.y = ncar.ay
-	all_sprites_list.add(c)
+for j in xrange(1,7):
+	carlist=[]
+	for i in xrange(10):
+		ncar=Car(j,i,30+20*j)
+		carlist+=[ncar]
+		c = GameCar(ncar)
+		c.rect.x = ncar.ax
+		c.rect.y = ncar.ay
+		all_sprites_list.add(c)
+	lanes+=[carlist]
 
-for c in carlist:
-	c.setup(carlist)
+	for c in carlist:
+		c.setup(carlist)
 
 # Loop
 carryOn = True
@@ -119,6 +133,6 @@ while carryOn:
 
 		pygame.display.flip()
 
-		clock.tick(60)
+		clock.tick(30)
 
 pygame.quit()
