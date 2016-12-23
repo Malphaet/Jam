@@ -128,38 +128,7 @@ class Car (object):
 	def __str__(self):
 		return "Car{} lane:{} ({:2d},{:2d}) - ({:2d}°,{:2d})".format(self.pos,self.lane,self.x,self.y,self.theta,self.r)
 	
-class BrokenCar(Car):
-	def __init__(self,lane,pos,max_speed,jam=20):
-		Car.__init__(self,lane,pos,max_speed)
-		self.color=RED
-		self.stuck=0
-		self.time=0
-		self.immune=0
-		self.jam=jam
-		self.apply()
 
-	def update(self):
-		self.pickspeed()
-		self.move()
-		self.slack()
-		self.apply()
-
-	def slack(self):
-		if self.stuck==0:
-			self.acc=self.accelerate()
-			if self.immune<0 and random.randint(0,100)<self.jam:
-				self.stuck=1
-				self.time=random.randint(1,6)*FRAMERATE/6
-			else:
-				self.immune-=1
-
-		else:
-			self.speed=0
-			self.acc=0
-			self.time-=1
-			if self.time<0:
-				self.stuck=0
-				self.immune=FRAMERATE*4
 
 class Mouducul(Car):
 	def __init__(self,lane,pos,max_speed,reacttime=2):
@@ -193,6 +162,40 @@ class Mouducul(Car):
 				self.color=GREEN
 				self.drawcar.drawcar()
 				self.drawcar.movecar()
+
+
+class BrokenCar(Mouducul):
+	def __init__(self,lane,pos,max_speed,jam=20):
+		Mouducul.__init__(self,lane,pos,max_speed)
+		self.color=GREEN
+		self.stuck=0
+		self.time=0
+		self.immune=0
+		self.jam=jam
+		self.apply()
+
+	def update(self):
+		self.slackspeed()
+		self.move()
+		self.willbreak()
+		self.apply()
+
+	def willbreak(self):
+		if self.stuck==0:
+			self.acc=self.accelerate()
+			if self.immune<0 and random.randint(0,100)<self.jam:
+				self.stuck=1
+				self.time=random.randint(1,6)*FRAMERATE/6
+			else:
+				self.immune-=1
+
+		else:
+			self.speed=0
+			self.acc=0
+			self.time-=1
+			if self.time<0:
+				self.stuck=0
+				self.immune=FRAMERATE*4
 class CarList (object):
 	def __init__(self):
 		pass
@@ -206,7 +209,7 @@ def distsec(lane,vmax):
 # Init
 lanes=[]
 
-cars=[Mouducul]*8+[BrokenCar]*0+[Car]*0
+cars=[Mouducul]*8+[BrokenCar]*1+[Car]*1
 nbtcar=len(cars)
 
 screen = pygame.display.set_mode(SCREENSIZE)
